@@ -7,7 +7,7 @@ Created on Tue Oct 30 00:41:16 2018
 """
 
 import numpy as np
-from scipy import optimize
+
 
 def subset(full,prop=0.1):
     N = full.shape[0]
@@ -21,9 +21,10 @@ def f(theta,sample):
     """
     m = sample.shape[0]
     pred = np.matmul(sample[:,1:],theta)
-    pred = np.matrix(pred).T
+    pred = pred.T
     respond = sample[:,0]
-    return np.linalg.norm(respond-pred)/m
+    res = respond-pred
+    return np.sum(res.T*res)/m
 
 
 def grad(f,theta,sample):
@@ -46,99 +47,98 @@ def grad(f,theta,sample):
     return grad
 
 
-def gd(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4):
+def gd(f,theta,full,alpha=0.1,K=1e4):
     """
     @f: a loss function on theta (in R^d) to R
     @theta: a d-dimension nd-array, the initial value
     @full: the dataset used to compute the loss
     @alpha: step size
-    @epsilon: rule of stop
     @K: the maximum number of iteration
     return the result and the iteration times
     """
+    ite = 2**(np.arange(int(np.log2(K))))
+    res = []
     for i in range(int(K)):
         step = -alpha*grad(f,theta,full)
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta,K
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
 
 
-def sgd(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4):
+def sgd(f,theta,full,alpha=0.1,K=1e4):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
     @full: the dataset used to draw random subset
     @alpha: step size
-    @epsilon: rule of stop
     @K: the maximum number of iteration
     return the result and the iteration times
     """
+    ite = 2**(np.arange(int(np.log2(K))))
+    res = []
     for i in range(int(K)):
         step = -alpha*grad(f,theta,subset(full))
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta,K
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
 
 
 
-def sgdm(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,eta=0.9):
+def sgdm(f,theta,full,alpha=0.1,K=1e4,eta=0.9):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
     @sample: the dataset used to draw random subset
     @alpha: step size
-    @epsilon: rule of stop
     @K: the maximum number of iteration
     @eta: the decay rate of old gradient (momentum parameter)
     return the result and the iteration times
     """
     v = np.zeros(theta.shape[0])
+    ite = np.arange(int(np.log2(K)))
+    res = []
     for i in range(int(K)):
-        v = eta*v-grad(f,theta+eta*v,subset(full))
+        v = eta*v-grad(f,theta,subset(full))
         step = alpha*v
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta,K
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
     
     
     
-def adagrad(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4):
+def adagrad(f,theta,full,alpha=0.1,K=1e4):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
     @full: the full dataset used to draw random subset
     @alpha: step size
-    @epsilon: rule of stop
     @K: the maximum number of iteration
     return the result and the iteration times
     """
     stable = 1e-7
     d = theta.shape[0]
     r = np.zeros(d)
+    ite = np.arange(int(np.log2(K)))
+    res = []
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         r = r + g*g
         step = -alpha/(np.repeat(stable,d)+np.sqrt(r))*g
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta, K
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
 
 
-def rmsprop(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,rho=0.9):
+def rmsprop(f,theta,full,alpha=0.1,K=1e4,rho=0.47):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
     @full: the full dataset used to draw random subset
     @alpha: step size
-    @epsilon: rule of stop
     @K: the maximum number of iteration
     @rho: decay rate of squared gradient
     return the result and the iteration times
@@ -146,50 +146,50 @@ def rmsprop(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,rho=0.9):
     stable = 1e-7
     d = theta.shape[0]
     r = np.zeros(d)
+    ite = 2**(np.arange(int(np.log2(K))))
+    res = []
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         r = rho*r + (1-rho)*g*g
         step = -alpha/(np.sqrt(np.repeat(stable,d)+r))*g
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta, K
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
 
 
     
-def adadelta(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,rho=0.9,stable=1e-7):
+def adadelta(f,theta,full,K=1e4,rho=0.9,stable=1e-7):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
     @full: the full dataset used to draw random subset
-    @alpha: step size
-    @epsilon: rule of stop
+    no learning rate required 
     @K: the maximum number of iteration
     @rho: decay rate of squared gradient
     return the result and the iteration times
     """
     d = theta.shape[0]
     s, r = np.zeros(d), np.zeros(d)
+    ite = 2**(np.arange(int(np.log2(K))))
+    res = []
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         r = rho*r + (1-rho)*g*g
         step = -np.sqrt(s+np.repeat(stable,d))/np.sqrt(r+np.repeat(stable,d))*g
         s = rho*s + (1-rho)*(step**2)
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta, K 
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
     
     
-def adam(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,rho1=0.9,rho2=0.999,stable=1e-8):
+def adam(f,theta,full,alpha=0.1,K=1e4,rho1=0.9,rho2=0.999,stable=1e-8):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
     @full: the full dataset used to draw random subset
     @alpha: step size
-    @epsilon: rule of stop
     @K: the maximum number of iteration
     @rho1, rho2: decay rate of moments
     @stable: constant for numerical stability
@@ -197,6 +197,8 @@ def adam(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,rho1=0.9,rho2=0.999,stable=1e
     """
     d = theta.shape[0]
     s, r = np.zeros(d), np.zeros(d)
+    ite = 2**(np.arange(int(np.log2(K))))
+    res = []
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         s = rho1*s + (1-rho1)*g
@@ -204,18 +206,51 @@ def adam(f,theta,full,alpha=0.1,epsilon=1e-4,K=1e4,rho1=0.9,rho2=0.999,stable=1e
         shat = s/(1-rho1**(i+1))
         rhat = r/(1-rho2**(i+1))
         step = -alpha*shat/(np.sqrt(rhat)+np.repeat(stable,d))
-        if np.linalg.norm(step,np.inf) < epsilon:
-            return theta,i
-        else:
-            theta = theta + step
-    return theta, K
+        theta = theta + step
+        if i in ite:
+            res.append(theta)
+    return {'tend':res,'opt':theta}
+
+def loss(optimizer,trueTheta):
+    dist = []
+    for theta in optimizer['tend']:
+        dist.append(np.linalg.norm(theta-trueTheta))
+    return dist
+        
 
 if __name__ == '__main__':
     d = 10
     N = 1000
-    X1 = np.random.randn(N,d)
+    X1 = np.concatenate((np.ones((N,1)),np.random.randn(N,d-1)),1)
     theta1 = np.random.poisson(1,d)
     Y1 = np.matmul(X1,theta1)+np.random.randn(N)
     Y1 = np.matrix(Y1).T
-    full = np.concatenate((Y1,X1),1)
+    full1 = np.concatenate((Y1,X1),1)
+    init1 = np.zeros(d)
+    X2 = np.concatenate((np.ones((N,1)),np.random.randn(N,d-5),np.random.normal(0,100,(N,4))),1)
+    theta2 = np.concatenate((np.random.poisson(2,d-5),np.random.poisson(1000,5)))
+    theta2 = np.random.permutation(theta2)
+    Y2 = np.matmul(X2,theta2)+np.random.randn(N)
+    Y2 = np.matrix(Y2).T
+    full2 = np.concatenate((Y2,X2),1)
+    init2 = np.zeros(d)
+    table1 = {
+            'gd':loss(gd(f,init1,full1),theta1),
+            'sgd':loss(sgd(f,init1,full1),theta1),
+            'sgdm':loss(sgdm(f,init1,full1),theta1),
+            'adagrad':loss(adagrad(f,init1,full1),theta1),
+            'rmsprop':loss(rmsprop(f,init1,full1),theta1),
+            'adadelta':loss(adadelta(f,init1,full1),theta1),
+            'adam':loss(adam(f,init1,full1),theta1)
+            }
+    table2 = {
+            'gd':loss(gd(f,init2,full2),theta2),
+            'sgd':loss(sgd(f,init2,full2),theta2),
+            'sgdm':loss(sgdm(f,init2,full2),theta2),
+            'adagrad':loss(adagrad(f,init2,full2),theta2),
+            'rmsprop':loss(rmsprop(f,init2,full2),theta2),
+            'adadelta':loss(adadelta(f,init2,full2),theta2),
+            'adam':loss(adam(f,init2,full2),theta2)
+            }
+    
     
