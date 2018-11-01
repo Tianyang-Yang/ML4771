@@ -58,10 +58,13 @@ def compare(matrix):
 #    for user in range(matrix.shape[0]):
 #        cur = len(matrix[user, :].nonzero()[0])
 #        min_nonzero = min(cur, min_nonzero)
-    for test_size in range(50, 650, 50):
-        print("train size: {}, test size: {}".format(matrix.shape[0]-test_size, test_size))
-        mse1 = 0
-        mse2 = 0
+    train_size_list = []
+    mse1_list, mse2_list = [], []
+    for train_size in range(50, 650, 50):
+        train_size_list.append(train_size)
+        test_size = matrix.shape[0] - train_size
+        print("train size: {}, test size: {}".format(train_size, test_size))
+        mse1, mse2 = 0, 0
         rep = 50
         for i in range(rep):
             train, test = split(matrix, test_size)
@@ -69,8 +72,13 @@ def compare(matrix):
             #pred2 = predict(train)
             mse1 += compute_mse(pred1, test)
             #mse2 += compute_mse(pred2, test)
-        print("  filtering prediction mse: {}".format(mse1/rep))
-        #print("  Q3 prediction mse: {}".format(mse2/rep))
+        mse1 = mse1 / rep
+        mse1_list.append(mse1)
+        #mse2 = mse2 / rep
+        #mse2_list.append(mse2)
+        print("  filtering prediction mse: {}".format(mse1))
+        #print("  Q3 prediction mse: {}".format(mse2))
+    return train_size_list, mse1_list
   
 # main
 if __name__ == '__main__':
@@ -91,7 +99,13 @@ if __name__ == '__main__':
 #    test_size = 10
 #    test, train = split(matrix, test_size)
 #    pred = filter_predict(train)
-    compare(matrix)
+    xlist, ylist = compare(matrix)
+    plt.plot(xlist, ylist, 'r', label='Our model')
+    plt.title('Model performance comparison')
+    plt.xlabel('Size of train set')
+    plt.ylabel('Prediction MSE')
+    plt.legend(loc='upper right')
+    plt.savefig('pic1.png', dpi=1024)
     
 
 
