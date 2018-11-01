@@ -42,6 +42,12 @@ def filter_predict(train):
     pred = mean_ratings[:, np.newaxis] + user_sim.dot(diff) / np.array([np.abs(user_sim).sum(axis=1)]).transpose()
     return pred
 
+def f():
+    pass
+
+def grad():
+    pass
+
 # predict using model in Q3
 def predict(train):
     pass    
