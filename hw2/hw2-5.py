@@ -101,10 +101,7 @@ if __name__ == '__main__':
     for entry in ratings.itertuples():
         matrix[entry[1]-1, np.where(movie_dict==entry[2])[0][0]] = entry[3]
 
-    # perform prediction
-#    test_size = 10
-#    test, train = split(matrix, test_size)
-#    pred = filter_predict(train)
+    # compare performance
     xlist, ylist = compare(matrix)
     plt.plot(xlist, ylist, 'r', label='Our model')
     plt.title('Model performance comparison')
