@@ -57,7 +57,7 @@ def gd(f,theta,full,alpha=0.1,K=1e4):
     return the result and the iteration times
     """
     ite = 2**(np.arange(int(np.log2(K))))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         step = -alpha*grad(f,theta,full)
         theta = theta + step
@@ -76,7 +76,7 @@ def sgd(f,theta,full,alpha=0.1,K=1e4):
     return the result and the iteration times
     """
     ite = 2**(np.arange(int(np.log2(K))))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         step = -alpha*grad(f,theta,subset(full))
         theta = theta + step
@@ -98,7 +98,7 @@ def sgdm(f,theta,full,alpha=0.1,K=1e4,eta=0.9):
     """
     v = np.zeros(theta.shape[0])
     ite = np.arange(int(np.log2(K)))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         v = eta*v-grad(f,theta,subset(full))
         step = alpha*v
@@ -122,7 +122,7 @@ def adagrad(f,theta,full,alpha=0.1,K=1e4):
     d = theta.shape[0]
     r = np.zeros(d)
     ite = np.arange(int(np.log2(K)))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         r = r + g*g
@@ -147,7 +147,7 @@ def rmsprop(f,theta,full,alpha=0.1,K=1e4,rho=0.47):
     d = theta.shape[0]
     r = np.zeros(d)
     ite = 2**(np.arange(int(np.log2(K))))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         r = rho*r + (1-rho)*g*g
@@ -172,7 +172,7 @@ def adadelta(f,theta,full,K=1e4,rho=0.9,stable=1e-7):
     d = theta.shape[0]
     s, r = np.zeros(d), np.zeros(d)
     ite = 2**(np.arange(int(np.log2(K))))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         r = rho*r + (1-rho)*g*g
@@ -198,7 +198,7 @@ def adam(f,theta,full,alpha=0.1,K=1e4,rho1=0.9,rho2=0.999,stable=1e-8):
     d = theta.shape[0]
     s, r = np.zeros(d), np.zeros(d)
     ite = 2**(np.arange(int(np.log2(K))))
-    res = []
+    res = [theta]
     for i in range(int(K)):
         g = grad(f,theta,subset(full))
         s = rho1*s + (1-rho1)*g
@@ -234,6 +234,8 @@ if __name__ == '__main__':
     Y2 = np.matrix(Y2).T
     full2 = np.concatenate((Y2,X2),1)
     init2 = np.zeros(d)
+    hat1 =np.matmul(np.linalg.inv(np.matmul(X1.T,X1)),np.matmul(X1.T,Y1))
+    hat2 =np.matmul(np.linalg.inv(np.matmul(X2.T,X2)),np.matmul(X2.T,Y2))
     table1 = {
             'gd':loss(gd(f,init1,full1),theta1),
             'sgd':loss(sgd(f,init1,full1),theta1),
@@ -251,6 +253,24 @@ if __name__ == '__main__':
             'rmsprop':loss(rmsprop(f,init2,full2),theta2),
             'adadelta':loss(adadelta(f,init2,full2),theta2),
             'adam':loss(adam(f,init2,full2),theta2)
+            }
+    table1hat = {
+            'gd':loss(gd(f,init1,full1),hat1),
+            'sgd':loss(sgd(f,init1,full1),hat1),
+            'sgdm':loss(sgdm(f,init1,full1),hat1),
+            'adagrad':loss(adagrad(f,init1,full1),hat1),
+            'rmsprop':loss(rmsprop(f,init1,full1),hat1),
+            'adadelta':loss(adadelta(f,init1,full1),hat1),
+            'adam':loss(adam(f,init1,full1),hat1)
+            }
+    table2hat = {
+            'gd':loss(gd(f,init2,full2),hat2),
+            'sgd':loss(sgd(f,init2,full2),hat2),
+            'sgdm':loss(sgdm(f,init2,full2),hat2),
+            'adagrad':loss(adagrad(f,init2,full2),hat2),
+            'rmsprop':loss(rmsprop(f,init2,full2),hat2),
+            'adadelta':loss(adadelta(f,init2,full2),hat2),
+            'adam':loss(adam(f,init2,full2),hat2)
             }
     
     
