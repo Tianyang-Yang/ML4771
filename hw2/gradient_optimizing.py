@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct 30 00:41:16 2018
-
-@author: Tianyang Yang, Wenqi Wang
+COMS W4771 Machine Learning
+HW 2, Problem 5
+Tianyang Yang (ty2388), Wenqi Wang (ww2505)
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 
 def subset(full,prop=0.1):
@@ -19,6 +22,14 @@ def f(theta,sample):
     compute the LSE loss based on theta and smaple
     return a real number
     """
+    m = sample.shape[0]
+    pred = np.matmul(sample[:,1:],theta)
+    pred = pred.T
+    respond = sample[:,0]
+    res = respond-pred
+    return np.sum(res.T*res)/m
+
+def f2(theta,sample,lamb):
     m = sample.shape[0]
     pred = np.matmul(sample[:,1:],theta)
     pred = pred.T
@@ -47,7 +58,7 @@ def grad(f,theta,sample):
     return grad
 
 
-def gd(f,theta,full,alpha=0.1,K=1e4):
+def gd(f,theta,full,alpha=0.001,K=1e4):
     """
     @f: a loss function on theta (in R^d) to R
     @theta: a d-dimension nd-array, the initial value
@@ -66,7 +77,7 @@ def gd(f,theta,full,alpha=0.1,K=1e4):
     return {'tend':res,'opt':theta}
 
 
-def sgd(f,theta,full,alpha=0.1,K=1e4):
+def sgd(f,theta,full,alpha=0.001,K=1e4):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
@@ -86,7 +97,7 @@ def sgd(f,theta,full,alpha=0.1,K=1e4):
 
 
 
-def sgdm(f,theta,full,alpha=0.1,K=1e4,eta=0.9):
+def sgdm(f,theta,full,alpha=0.001,K=1e4,eta=0.5):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
@@ -109,7 +120,7 @@ def sgdm(f,theta,full,alpha=0.1,K=1e4,eta=0.9):
     
     
     
-def adagrad(f,theta,full,alpha=0.1,K=1e4):
+def adagrad(f,theta,full,alpha=0.5,K=1e4):
     """
     @f: a loss function on theta (in R^d) to R, only take a random subset 
     @theta: a d-dimension nd-array, the initial value
@@ -215,27 +226,28 @@ def loss(optimizer,trueTheta):
     dist = []
     for theta in optimizer['tend']:
         dist.append(np.linalg.norm(theta-trueTheta))
-    return dist
+    return [optimizer['opt'], dist]
         
 
 if __name__ == '__main__':
     d = 10
     N = 1000
-    X1 = np.concatenate((np.ones((N,1)),np.random.randn(N,d-1)),1)
+    X1 = 10*np.concatenate((np.ones((N,1)),np.random.randn(N,d-1)),1)
     theta1 = np.random.poisson(1,d)
     Y1 = np.matmul(X1,theta1)+np.random.randn(N)
     Y1 = np.matrix(Y1).T
     full1 = np.concatenate((Y1,X1),1)
-    init1 = np.zeros(d)
-    X2 = np.concatenate((np.ones((N,1)),np.random.randn(N,d-5),np.random.normal(0,100,(N,4))),1)
+    X2 = np.concatenate((np.ones((N,1)),np.random.randn(N,d-5),np.random.normal(0,10,(N,4))),1)
     theta2 = np.concatenate((np.random.poisson(2,d-5),np.random.poisson(1000,5)))
     theta2 = np.random.permutation(theta2)
     Y2 = np.matmul(X2,theta2)+np.random.randn(N)
     Y2 = np.matrix(Y2).T
     full2 = np.concatenate((Y2,X2),1)
-    init2 = np.zeros(d)
     hat1 =np.matmul(np.linalg.inv(np.matmul(X1.T,X1)),np.matmul(X1.T,Y1))
     hat2 =np.matmul(np.linalg.inv(np.matmul(X2.T,X2)),np.matmul(X2.T,Y2))
+    init1 = np.random.rand(d)
+    init2 = np.random.rand(d)
+    # table1['sgd'][1] is a list of squre error
     table1 = {
             'gd':loss(gd(f,init1,full1),theta1),
             'sgd':loss(sgd(f,init1,full1),theta1),
@@ -246,13 +258,13 @@ if __name__ == '__main__':
             'adam':loss(adam(f,init1,full1),theta1)
             }
     table2 = {
-            'gd':loss(gd(f,init2,full2),theta2),
-            'sgd':loss(sgd(f,init2,full2),theta2),
-            'sgdm':loss(sgdm(f,init2,full2),theta2),
-            'adagrad':loss(adagrad(f,init2,full2),theta2),
-            'rmsprop':loss(rmsprop(f,init2,full2),theta2),
+            'gd':loss(gd(f,init2,full2,alpha=0.001),theta2),
+            'sgd':loss(sgd(f,init2,full2,alpha=0.001),theta2),
+            'sgdm':loss(sgdm(f,init2,full2,alpha=0.005),theta2),
+            'adagrad':loss(adagrad(f,init2,full2,alpha=1),theta2),
+            'rmsprop':loss(rmsprop(f,init2,full2,alpha=1),theta2),
             'adadelta':loss(adadelta(f,init2,full2),theta2),
-            'adam':loss(adam(f,init2,full2),theta2)
+            'adam':loss(adam(f,init2,full2,alpha=1),theta2)
             }
     table1hat = {
             'gd':loss(gd(f,init1,full1),hat1),
@@ -264,13 +276,47 @@ if __name__ == '__main__':
             'adam':loss(adam(f,init1,full1),hat1)
             }
     table2hat = {
-            'gd':loss(gd(f,init2,full2),hat2),
-            'sgd':loss(sgd(f,init2,full2),hat2),
-            'sgdm':loss(sgdm(f,init2,full2),hat2),
-            'adagrad':loss(adagrad(f,init2,full2),hat2),
-            'rmsprop':loss(rmsprop(f,init2,full2),hat2),
+            'gd':loss(gd(f,init2,full2,alpha=0.001),hat2),
+            'sgd':loss(sgd(f,init2,full2,alpha=0.001),hat2),
+            'sgdm':loss(sgdm(f,init2,full2,alpha=0.005),hat2),
+            'adagrad':loss(adagrad(f,init2,full2,alpha=1),hat2),
+            'rmsprop':loss(rmsprop(f,init2,full2,alpha=1),hat2),
             'adadelta':loss(adadelta(f,init2,full2),hat2),
-            'adam':loss(adam(f,init2,full2),hat2)
+            'adam':loss(adam(f,init2,full2,alpha=1),hat2)
             }
     
+    # plot performance comparison graphs
+    xlist = np.arange(1, 15)
+    cwd = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(cwd)
+    for key in table1:
+        plt.plot(xlist, table1[key][1], label=key)
+    plt.title('Gradient algorithm performance on dataset 1')
+    plt.xlabel('log(#iteration)')
+    plt.ylabel('Sum of squared error')
+    plt.legend(loc='upper right')
+    plt.savefig('1-1.png', dpi=1024)
     
+    for key in table2:
+        plt.plot(xlist, table2[key][1], label=key)
+    plt.title('Gradient algorithm performance on dataset 2')
+    plt.xlabel('log(#iteration)')
+    plt.ylabel('Sum of squared error')
+    plt.legend(loc='lower left')
+    plt.savefig('1-2.png', dpi=1024)  
+    
+    for key in table1:
+        plt.plot(xlist, np.log2(table1[key][1]), label=key)
+    plt.title('Gradient algorithm performance on dataset 1')
+    plt.xlabel('log(#iteration)')
+    plt.ylabel('Log Sum of squared error')
+    plt.legend(loc='upper right')
+    plt.savefig('1-11.png', dpi=1024)
+    
+    for key in table2:
+        plt.plot(xlist, np.log2(table2[key][1]), label=key)
+    plt.title('Gradient algorithm performance on dataset 2')
+    plt.xlabel('log(#iteration)')
+    plt.ylabel('Log Sum of squared error')
+    plt.legend(loc='lower left')
+    plt.savefig('1-22.png', dpi=1024)
